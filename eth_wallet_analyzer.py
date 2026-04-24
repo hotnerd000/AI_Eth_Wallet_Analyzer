@@ -10,6 +10,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+openrouter_client = OpenAI(
+    api_key=ETHERSCAN_API_KEY,
+    base_url="https://openrouter.ai/api/v1"
+)
 
 def get_transactions(address):
     url = "https://api.etherscan.io/v2/api"
@@ -39,7 +45,7 @@ def get_transactions(address):
     if not isinstance(result, list):
         print("Result is not a list:", result)
         return []
-
+    
     return result
 
 def analyze_transactions(tx_list):
@@ -79,38 +85,44 @@ def analyze_transactions(tx_list):
     return features
 
 
-openrouter_client = OpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1"
-)
+def call_your_llm(prompt):
+    url = "https://openrouter.ai/api/v1/chat/completions"
 
-def generate_ai_summary(features):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "google/gemma-3-4b-it:free",  # your working model
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+
+    if response.status_code != 200:
+        return "⚠️ AI explanation unavailable (API error)"
+
+    result = response.json()
+
+    return result["choices"][0]["message"]["content"]
+
+def generate_ai_summary(features, signals_with_severity):
     prompt = f"""
-    Analyze this Ethereum wallet behavior:
+    You are a crypto risk analyst.
 
-    Total transactions: {features.get('total_tx', 0)}
-    Average value: {features.get('avg_value', 0)}
-    Max value: {features.get('max_value', 0)}
-    Unique addresses: {features.get('unique_addresses', 0)}
+    Wallet features:
+    {features}
 
-    1. Summarize behavior
-    2. Assign a risk score (0 to 1)
-    3. Explain reasoning briefly
+    Detected signals:
+    {signals_with_severity}
+
+    Give a short, clear explanation of the wallet risk in 2–3 sentences.
     """
 
-    # 🔁 Fallback to OpenRouter
-    try:
-        response = openrouter_client.chat.completions.create(
-            model="google/gemma-3-4b-it:free",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.choices[0].message.content
-
-    except Exception as e:
-        print("OpenRouter failed:", e)
-
-    # 🔥 Final fallback (never crash)
-    return "AI analysis unavailable"
+    return call_your_llm(prompt)
 
 def compute_risk_score(features):
     score = 0
@@ -142,20 +154,61 @@ def is_valid_address(address):
 def detect_signals(features):
     signals = []
 
+    # 🧠 High activity
     if features["tx_frequency"] > 20:
         signals.append("High transaction frequency")
 
+    # 💣 Large spikes
     if features["max_value"] > 10:
-        signals.append("Large transaction spike")
+        signals.append("Large transaction spike detected")
 
+    # 🔁 Many counterparties
     if features["unique_addresses"] > 50:
-        signals.append("Many unique counterparties")
+        signals.append("Interacting with many unique addresses")
 
+    # 📈 Large tx ratio
     if features["large_tx_ratio"] > 0.3:
         signals.append("Frequent large transactions")
 
+    # 🤖 Bot-like behavior
     if features["avg_value"] < 0.01 and features["tx_frequency"] > 30:
-        signals.append("Possible bot-like activity")
+        signals.append("Possible bot-like activity (many small frequent txs)")
+
+    # ⚠️ Abnormal burst activity
+    if features["tx_frequency"] > 50 and features["avg_value"] > 0.5:
+        signals.append("Abnormal burst trading behavior")
+
+    # 🔄 Wash trading suspicion
+    if features["unique_addresses"] < 5 and features["tx_frequency"] > 25:
+        signals.append("Possible wash trading (low counterparties, high activity)")
+
+    # 💸 Low-value spam pattern
+    if features["avg_value"] < 0.001 and features["tx_frequency"] > 40:
+        signals.append("Spam transaction pattern detected")
+
+    # 🧍 Dormant then active (basic proxy)
+    if features["tx_frequency"] < 1 and features["max_value"] > 20:
+        signals.append("Large transaction from low-activity wallet")
+
+    return signals
+
+def detect_signs_with_severity(features):
+    signals = []
+
+    if features["tx_frequency"] > 20:
+        signals.append(("High transaction frequency", "medium"))
+
+    if features["max_value"] > 10:
+        signals.append(("Large transaction spike", "high"))
+
+    if features["unique_addresses"] > 50:
+        signals.append(("Many counterparties", "medium"))
+
+    if features["large_tx_ratio"] > 0.3:
+        signals.append(("Frequent large transactions", "high"))
+
+    if features["avg_value"] < 0.01 and features["tx_frequency"] > 30:
+        signals.append(("Bot-like behavior", "high"))
 
     return signals
 
@@ -190,19 +243,26 @@ def analyze_wallet(wallet_address):
         # 📊 Scoring
         score = compute_risk_score(features)
         category = risk_category(score)
+        
+        signals_with_severity = detect_signs_with_severity(features)
+
+        # Optional: plain signals (fallback or simple view)
         signals = detect_signals(features)
 
         # 🤖 AI explanation
-        explanation = generate_ai_summary(features)
+        explanation = generate_ai_summary(features, signals_with_severity)
 
         # 🔥 Final output
         print("\n=== WALLET ANALYSIS ===")
         print(f"Risk Score: {score:.2f}")
         print(f"Risk Category: {category}")
 
-        print("\n--- Signals ---")
-        for s in signals:
-            print(f"- {s}")
+        print("\n--- Signals (with severity) ---")
+        if not signals_with_severity:
+            print("No suspicious signals detected")
+        else:
+            for signal, severity in signals_with_severity:
+                print(f"- [{severity.upper()}] {signal}")
 
         print("\n--- Key Features ---")
         for key, value in features.items():
