@@ -109,17 +109,32 @@ def call_your_llm(prompt):
 
     return result["choices"][0]["message"]["content"]
 
+def convert_wei_to_eth(wei_value):
+    return wei_value / 1e18  # Convert Wei to ETH
+
 def generate_ai_summary(features, signals_with_severity):
+    # Convert the Wei values to ETH
+    avg_value_eth = convert_wei_to_eth(features['avg_value'])  # Convert to ETH
+    max_value_eth = convert_wei_to_eth(features['max_value'])  # Convert to ETH
+
+
+    # Round for better readability (optional)
+    avg_value_eth = round(avg_value_eth, 5)  # Rounded to 5 decimals
+    max_value_eth = round(max_value_eth, 5)  # Rounded to 5 decimals
+
     prompt = f"""
-    You are a crypto risk analyst.
-
     Wallet features:
-    {features}
+    Total Transactions: {features['total_tx']}
+    Average Transaction Value (ETH): {avg_value_eth} ETH
+    Maximum Transaction Value (ETH): {max_value_eth} ETH
+    Transaction Frequency: {features['tx_frequency']}
+    Unique Addresses Interacted With: {features['unique_addresses']}
+    Large Transaction Ratio: {features['large_tx_ratio']}
 
-    Detected signals:
+    Detected Signals:
     {signals_with_severity}
 
-    Give a short, clear explanation of the wallet risk in 2–3 sentences.
+    Explain the risk in simple terms, considering the values are in ETH and rounded to 5 decimal places.
     """
 
     return call_your_llm(prompt)
