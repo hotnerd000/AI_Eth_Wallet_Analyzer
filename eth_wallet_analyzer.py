@@ -233,30 +233,39 @@ def analyze_wallet(wallet_address):
             print("⚠️ Wallet has no transactions")
             return
 
-        # 🔧 Feature extraction
+        # Step 1: Analyze transactions and extract features
         features = analyze_transactions(txs)
 
         if not features:
             print("❌ Failed to extract features")
             return
 
-        # 📊 Scoring
+        # Step 2: Compute risk score and category
         score = compute_risk_score(features)
         category = risk_category(score)
-        
+
+        # Step 3: Detect signals (with severity)
         signals_with_severity = detect_signs_with_severity(features)
 
-        # Optional: plain signals (fallback or simple view)
+        # Step 4: Sort signals by severity
+        severity_order = {"high": 3, "medium": 2, "low": 1}
+        signals_with_severity.sort(
+            key=lambda x: severity_order.get(x[1], 0),
+            reverse=True
+        )
+
+        # Step 5: Optional: Detect plain signals (no severity)
         signals = detect_signals(features)
 
-        # 🤖 AI explanation
+        # Step 6: Generate AI explanation
         explanation = generate_ai_summary(features, signals_with_severity)
 
-        # 🔥 Final output
+        # Step 7: Display results
         print("\n=== WALLET ANALYSIS ===")
         print(f"Risk Score: {score:.2f}")
         print(f"Risk Category: {category}")
 
+        # Display signals with severity
         print("\n--- Signals (with severity) ---")
         if not signals_with_severity:
             print("No suspicious signals detected")
@@ -264,10 +273,12 @@ def analyze_wallet(wallet_address):
             for signal, severity in signals_with_severity:
                 print(f"- [{severity.upper()}] {signal}")
 
+        # Display key features
         print("\n--- Key Features ---")
         for key, value in features.items():
             print(f"{key}: {value}")
 
+        # Display AI explanation
         print("\n--- AI Explanation ---")
         print(explanation)
 
