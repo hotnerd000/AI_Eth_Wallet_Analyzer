@@ -136,27 +136,83 @@ def risk_category(score):
     else:
         return "High Risk"
     
-def analyze_wallet(address):
-    txs = get_transactions(address)
-    features = analyze_transactions(txs)
+def is_valid_address(address):
+    return isinstance(address, str) and address.startswith("0x") and len(address) == 42
     
-    score = compute_risk_score(features)
-    category = risk_category(score)
+def detect_signals(features):
+    signals = []
 
-    explanation = generate_ai_summary(features)
+    if features["tx_frequency"] > 20:
+        signals.append("High transaction frequency")
 
-    print("\n=== WALLET ANALYSIS ===")
+    if features["max_value"] > 10:
+        signals.append("Large transaction spike")
 
-    print(f"Risk Score: {score:.2f}")
-    print(f"Risk Category: {category}")
+    if features["unique_addresses"] > 50:
+        signals.append("Many unique counterparties")
 
-    print("\n--- Key Features ---")
-    for key, value in features.items():
-        print(f"{key}: {value}")
+    if features["large_tx_ratio"] > 0.3:
+        signals.append("Frequent large transactions")
 
-    print("\n--- AI Explanation ---")
-    print(explanation)
+    if features["avg_value"] < 0.01 and features["tx_frequency"] > 30:
+        signals.append("Possible bot-like activity")
 
+    return signals
+
+def analyze_wallet(wallet_address):
+    try:
+        # ✅ Validate address
+        if not is_valid_address(wallet_address):
+            print("❌ Invalid wallet address format")
+            return
+
+        print(f"\nAnalyzing wallet: {wallet_address}")
+
+        # 🔁 Fetch transactions (your existing function)
+        txs = get_transactions(wallet_address)
+
+        # ❌ Handle API failure or empty response
+        if txs is None:
+            print("❌ Failed to fetch transactions (API issue)")
+            return
+
+        if len(txs) == 0:
+            print("⚠️ Wallet has no transactions")
+            return
+
+        # 🔧 Feature extraction
+        features = analyze_transactions(txs)
+
+        if not features:
+            print("❌ Failed to extract features")
+            return
+
+        # 📊 Scoring
+        score = compute_risk_score(features)
+        category = risk_category(score)
+        signals = detect_signals(features)
+
+        # 🤖 AI explanation
+        explanation = generate_ai_summary(features)
+
+        # 🔥 Final output
+        print("\n=== WALLET ANALYSIS ===")
+        print(f"Risk Score: {score:.2f}")
+        print(f"Risk Category: {category}")
+
+        print("\n--- Signals ---")
+        for s in signals:
+            print(f"- {s}")
+
+        print("\n--- Key Features ---")
+        for key, value in features.items():
+            print(f"{key}: {value}")
+
+        print("\n--- AI Explanation ---")
+        print(explanation)
+
+    except Exception as e:
+        print(f"❌ Unexpected error occurred: {str(e)}")
 
 if __name__ == "__main__":
     wallet = input("Enter wallet address: ")
