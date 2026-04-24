@@ -48,21 +48,35 @@ def analyze_transactions(tx_list):
         return {}
 
     df = pd.DataFrame(tx_list)
-
-    df["value"] = df["value"].astype(float) / 1e18
-
+    
+    df["value"] = df["value"].astype(float)
+    df["timeStamp"] = df["timeStamp"].astype(int)
+    
     total_tx = len(df)
     avg_value = df["value"].mean()
-    max_value = df["value"].max()
 
+    max_value = df["value"].max()
     unique_addresses = df["to"].nunique()
 
-    return {
+    # ✅ Compute active_days
+    min_ts = df["timeStamp"].min()
+    max_ts = df["timeStamp"].max()
+    active_days = max(1, (max_ts - min_ts) / 86400)
+
+    # ✅ Compute threshold
+    threshold = avg_value * 2
+
+    # ✅ Final features
+    features = {
         "total_tx": total_tx,
         "avg_value": avg_value,
         "max_value": max_value,
-        "unique_addresses": unique_addresses
+        "unique_addresses": unique_addresses,
+        "tx_frequency": total_tx / active_days,
+        "large_tx_ratio": (df["value"] > threshold).mean(),
     }
+
+    return features
 
 
 openrouter_client = OpenAI(
@@ -98,13 +112,50 @@ def generate_ai_summary(features):
     # 🔥 Final fallback (never crash)
     return "AI analysis unavailable"
 
+def compute_risk_score(features):
+    score = 0
+
+    if features["avg_value"] > 1:
+        score += 0.2
+    if features["max_value"] > 10:
+        score += 0.2
+    if features["tx_frequency"] > 20:
+        score += 0.2
+    if features["unique_addresses"] > 50:
+        score += 0.2
+    if features["large_tx_ratio"] > 0.3:
+        score += 0.2
+
+    return min(score, 1.0)
+
+def risk_category(score):
+    if score < 0.3:
+        return "Low Risk"
+    elif score < 0.7:
+        return "Medium Risk"
+    else:
+        return "High Risk"
+    
 def analyze_wallet(address):
     txs = get_transactions(address)
     features = analyze_transactions(txs)
-    summary = generate_ai_summary(features)
+    
+    score = compute_risk_score(features)
+    category = risk_category(score)
+
+    explanation = generate_ai_summary(features)
 
     print("\n=== WALLET ANALYSIS ===")
-    print(summary)
+
+    print(f"Risk Score: {score:.2f}")
+    print(f"Risk Category: {category}")
+
+    print("\n--- Key Features ---")
+    for key, value in features.items():
+        print(f"{key}: {value}")
+
+    print("\n--- AI Explanation ---")
+    print(explanation)
 
 
 if __name__ == "__main__":
