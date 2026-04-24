@@ -1,175 +1,109 @@
-# AI Wallet Risk Analyzer
+🛠️ Crypto Wallet Risk Analyzer (AI-Powered)
 
-An AI-powered cryptocurrency wallet analysis tool that evaluates wallet behavior and assigns a risk score based on transaction patterns.
+This tool analyzes cryptocurrency wallet transactions to detect suspicious activity and generate a risk score based on transaction behavior. It combines deterministic feature engineering (for trustworthy scoring) with AI-generated explanations (for transparency). Ideal for crypto wallet analysis, fraud detection, and wallet security.
 
-This project combines **deterministic feature engineering** with **AI-generated explanations** to produce an explainable and practical wallet risk assessment.
+🚀 Features
+Transaction Risk Scoring: Calculates a risk score based on wallet transaction behavior.
+Suspicious Activity Detection: Identifies high-risk patterns such as bot-like behavior, wash trading, and large transaction spikes.
+AI-Generated Explanations: Provides readable, human-understandable explanations for the detected risks.
+Fully Automated: Fetches wallet transaction data from Etherscan and analyzes it in real time.
 
----
-
-## 🚀 Features
-
-* 📊 Extracts real transaction-based features
-* 🔢 Computes a deterministic risk score (0–1)
-* 🧠 Provides AI-generated explanations
-* ⚠️ Detects suspicious behavioral signals
-* 🛡 Handles invalid inputs and API failures gracefully
-
----
-
-## 🧠 How It Works
-
-### 1. Data Collection
-
-Fetches transaction data for a given wallet address.
-
-### 2. Feature Engineering
-
-Derives key behavioral metrics:
-
-* Total transactions
-* Average transaction value
-* Maximum transaction value
-* Transaction frequency
-* Unique counterparties
-* Large transaction ratio
-
-### 3. Risk Scoring
-
-Applies rule-based scoring:
-
-* High transaction frequency
-* Large value spikes
-* Many unique counterparties
-* Abnormal transaction patterns
-
-### 4. Signal Detection
-
-Identifies suspicious behaviors such as:
-
-* Bot-like activity
-* High-frequency trading
-* Large irregular transfers
-
-### 5. AI Explanation
-
-Generates a natural-language explanation of the wallet's risk profile.
-
----
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/hotnerd000/AI_Eth_Wallet_Analyzer.git
-cd wallet-analyzer
+🛠️ Requirements
+Python 3.x
+Install dependencies:
 pip install -r requirements.txt
-```
+API Keys:
+Etherscan API Key: Create Etherscan API Key
+OpenRouter API Key (or any LLM provider API key)
 
----
+⚡ Setup
+1. Clone the repository:
+git clone https://github.com/your-username/crypto-wallet-risk-analyzer.git
+cd crypto-wallet-risk-analyzer
+2. Install dependencies:
+pip install -r requirements.txt
+3. Create a .env file:
+touch .env
 
-## 🔑 Environment Variables
+Inside the .env file, add your API keys:
 
-Create a `.env` file:
+ETHERSCAN_API_KEY=your_etherscan_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
 
-```
-OPENROUTER_API_KEY=your_key_here
-ETHERSCAN_API_KEY=your_key_here
-```
+🧪 How to Use
 
----
+1. Run the Analysis:
 
-## ▶️ Usage
+Run the script with the wallet address you want to analyze:
 
-Run the script:
+python analyze_wallet.py --address <wallet_address>
 
-```bash
-python main.py
-```
+Example:
 
-Enter a wallet address:
+python analyze_wallet.py --address 0x123abc456def7890
 
-```
-Enter wallet address: 0x...
-```
+2. Understand the Output:
 
----
+The output will provide:
 
-## 📊 Example Output
+Risk Score: A number between 0 and 1 indicating the risk level (higher score = higher risk).
+Risk Category: A descriptive category of the risk (e.g., "high risk").
+Signals: Any suspicious behaviors detected, such as large transaction spikes, high transaction frequency, etc.
+AI Explanation: A natural language explanation from the AI detailing the wallet’s risk behavior.
 
-```
+Example Output:
+
 === WALLET ANALYSIS ===
-Risk Score: 0.78
+Risk Score: 0.82
 Risk Category: High Risk
 
---- Signals ---
-- High transaction frequency
-- Large transaction spikes
-- Many unique counterparties
+--- Signals (with severity) ---
+- [HIGH] Large transaction spike
+- [MEDIUM] High transaction frequency
+- [LOW] Many counterparties
 
 --- Key Features ---
-total_tx: 120
-avg_value: 1.5
-max_value: 15
-tx_frequency: 25
-unique_addresses: 65
-large_tx_ratio: 0.4
+Total Transactions: 150
+Average Transaction Value (ETH): 0.006 ETH
+Maximum Transaction Value (ETH): 20 ETH
+Transaction Frequency: 25
+Unique Addresses Interacted With: 50
+Large Transaction Ratio: 0.3
 
 --- AI Explanation ---
-This wallet exhibits high-frequency transactions and large value spikes...
-```
+This wallet has a moderate risk due to a large transaction spike (20 ETH) and high transaction frequency. The wallet interacts with a moderate number of unique addresses, and the transaction size is generally small (average of 0.006 ETH). The risk is associated with the irregularity of transaction patterns and the potential for bot-like behavior or sudden market activity.
 
----
+🛠️ Key Functions
 
-## ⚠️ Error Handling
+1. analyze_transactions(txs):
+Processes the list of wallet transactions and calculates key features like transaction frequency, average value, and max value.
 
-The system gracefully handles:
+2. compute_risk_score(features):
+Calculates a numerical risk score based on the wallet’s transaction features.
 
-* Invalid wallet addresses
-* API failures
-* Wallets with zero transactions
-* Unexpected runtime errors
+3. detect_signals(features):
+Identifies suspicious activity signals based on wallet transaction patterns.
 
----
+4. generate_ai_summary(features, signals_with_severity):
+Uses a language model (LLM) to generate a human-readable explanation of the wallet’s risk.
 
-## 🧱 Tech Stack
+💡 Advanced Features (Optional)
+Contract-Level Detection: Identify whether transactions are interacting with risky contracts (e.g., DEX, NFTs, bridges).
+Time-Window Analysis: Compare wallet activity over the past week vs. all-time.
+Custom Alerts: Set thresholds for specific transaction behaviors and get alerted when they are triggered.
 
-* Python
-* Pandas
-* Etherscan API
-* Groq / OpenRouter (LLM APIs)
-* dotenv for environment management
+📄 License
+This project is licensed under the MIT License - see the LICENSE
+ file for details.
 
----
+💬 Contributing
+Feel free to fork this repository and submit pull requests with improvements or bug fixes! If you find an issue or have a feature suggestion, please open an issue.
 
-## 🔮 Future Improvements
+🚀 Next Steps
+Test on different wallets: Try analyzing wallets with various transaction patterns to ensure robust functionality.
+Deploy it: If you want to build a web app or dashboard with this project, integrate it with Flask or FastAPI to create an interactive UI.
 
-* Detect DEX interactions (Uniswap, PancakeSwap)
-* NFT activity analysis
-* Time-window based behavior (recent vs historical)
-* Machine learning-based scoring
-* Web dashboard UI
+👨‍💻 Author
 
----
-
-## 🎯 Use Cases
-
-* Crypto risk analysis
-* Fraud detection prototypes
-* Gitcoin bounty submissions
-* AI + blockchain portfolio projects
-
----
-
-## 🧠 Key Insight
-
-This project separates:
-
-* **Scoring (deterministic logic)**
-* **Explanation (AI layer)**
-
-This makes the system both **trustworthy** and **interpretable**.
-
----
-
-## 📜 License
-
-MIT License
+Hotnerd000
+[Your GitHub](https://github.com/hotnerd000)
